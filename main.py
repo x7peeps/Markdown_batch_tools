@@ -24,7 +24,6 @@ def get_files_list(dir):
         for file in files:
             if fnmatch.fnmatch(file, '*.md'):
                 files_list.append(os.path.join(root, file))
-
     return files_list
 
 
@@ -46,13 +45,13 @@ def get_pics_list(md_content):
 
 def download_pics(url, file):
     try:
-        img_data = requests.get(url,timeout=3).content
+        img_data = requests.get(url,timeout=3,verify=False).content
         
     except Exception as e:
         print("❌，使用代理",end="")
 
         try:
-            img_data = requests.get(url, proxies=proxies).content
+            img_data = requests.get(url, proxies=proxies,verify=False).content
             
         except Exception as e:
             print(f"Failed to download image from {url} to {file}: {e}")
@@ -76,19 +75,6 @@ def download_pics(url, file):
 
 # 将文档名称放在文档的第一行
 def update_md_filenames(folder_path):
-    # # 从文件路径中提取文件名
-    # filename = os.path.basename(filepath)
-
-    # # 读取原始文件内容
-    # with open(filepath, 'r', encoding='utf-8') as file:
-    #     content = file.read()
-
-    # # 将文件名添加到内容的前面
-    # new_content = filename + "\n" + content
-
-    # # 将新内容写回文件
-    # with open(filepath, 'w', encoding='utf-8') as file:
-    #     file.write(new_content)
     print('正在处理文件首行...')
     for root, dirs, files in os.walk(folder_path):
         for file in files:
