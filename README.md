@@ -18,7 +18,7 @@ Markdown files batch processing for download imgs or fill filename to de first l
 # Install:
 ```
 git clone https://github.com/x7peeps/Markdown_batch_tools.git
-python3 main.py
+python3 main.py -f <folder>
 ```
 
 
