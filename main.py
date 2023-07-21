@@ -45,11 +45,18 @@ def get_pics_list(md_content):
 
 def download_pics(url, file):
     try:
-        img_data = requests.get(url,timeout=3,verify=False).content
+        img_data = requests.get(url,timeout=3,verify=True).content
         
     except Exception as e:
+        print("❌，ssl不使用认证尝试",end="")
+        try:
+            img_data = requests.get(url, proxies=proxies,verify=False).content
+            
+        except Exception as e:
+            print(f"Failed to download image from {url} to {file}: {e}")
+        pass
+        
         print("❌，使用代理",end="")
-
         try:
             img_data = requests.get(url, proxies=proxies,verify=False).content
             
