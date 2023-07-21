@@ -8,10 +8,7 @@ import argparse
 
 
 
-proxies = {
-        "http": "http://127.0.0.1:1087",
-        "https": "http://127.0.0.1:1087",
-    }
+
 
 def get_files_list(dir):
     """
@@ -53,15 +50,21 @@ def download_pics(url, file):
             img_data = requests.get(url, proxies=proxies,verify=False).content
             
         except Exception as e:
-            print(f"Failed to download image from {url} to {file}: {e}")
+            if DEBUG:
+                print(f"Failed to download image from {url} to {file}: {e}")
             pass
         
         print("❌，使用代理",end="")
         try:
+            proxies = {
+                    "http": f"http://{PROXY}",
+                    "https": f"http://{PROXY}",
+                }
             img_data = requests.get(url, proxies=proxies,verify=False).content
             
         except Exception as e:
-            print(f"Failed to download image from {url} to {file}: {e}")
+            if DEBUG:
+                print(f"Failed to download image from {url} to {file}: {e}")
             pass
     filename = os.path.basename(file).replace('.md','')
     dirname = os.path.dirname(file)
@@ -144,13 +147,10 @@ def main(FolderPATH):
                     print(f'图片{pic}已存在，跳过')
                 else:    
                     print("❌")
-                    print(f'下载{pic}失败：{e}')
+                    if DEBUG:
+                        print(f'下载{pic}失败：{e}')
                 pass
-            
-        # soup = BeautifulSoup(md_content, 'lxml')
-        # for img in soup.find_all('img'):
-        #     url = img.get('src')
-        #     content = content.replace(url, new_img_path)
+
         f.close()
         print(f'处理完成。')    
 if __name__ == '__main__':
@@ -159,10 +159,13 @@ if __name__ == '__main__':
 
     # 添加参数
     parser.add_argument('-f', '--folder', help='folder path, default is ./files', default=os.path.abspath(os.path.join('.', 'files')))
-
+    parser.add_argument('-p', '--proxy', help='proxy, default is 127.0.0.1:1087', default='127.0.0.1:1087')
+    parser.add_argument('-d', '--debug', help='debug mode', action='store_true')
     # 解析参数
     args = parser.parse_args()
     FolderPATH = args.folder
+    PROXY = args.proxy
+    DEBUG = args.debug
     try:
         main(FolderPATH)
             
@@ -173,7 +176,8 @@ if __name__ == '__main__':
         
         update_md_filenames(FolderPATH)
     except Exception as e:
-        print(f'处理失败：{e}')
+        if DEBUG:
+            print(f'处理失败：{e}')
         parser.print_help()
         exit(1)
     
