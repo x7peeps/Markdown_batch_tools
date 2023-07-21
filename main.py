@@ -54,7 +54,7 @@ def download_pics(url, file):
             
         except Exception as e:
             print(f"Failed to download image from {url} to {file}: {e}")
-        pass
+            pass
         
         print("❌，使用代理",end="")
         try:
@@ -62,7 +62,7 @@ def download_pics(url, file):
             
         except Exception as e:
             print(f"Failed to download image from {url} to {file}: {e}")
-        pass
+            pass
     filename = os.path.basename(file).replace('.md','')
     dirname = os.path.dirname(file)
     targer_dir = os.path.join(dirname, f'{filename}.assets')
