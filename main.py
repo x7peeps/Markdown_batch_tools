@@ -156,13 +156,17 @@ if __name__ == '__main__':
     # 解析参数
     args = parser.parse_args()
     FolderPATH = args.folder
-    main(FolderPATH)
+    try:
+        main(FolderPATH)
+            
+        # 处理md文档内容首行，确保所有文件的首行为文件名
+        # 判断文件首行是否为文件名
+        # 判断首行是否为文件名
+        # 获取文件名
         
-    # 处理md文档内容首行，确保所有文件的首行为文件名
-    # 判断文件首行是否为文件名
-    # 判断首行是否为文件名
-    # 获取文件名
-    
-    update_md_filenames(FolderPATH)
-    
+        update_md_filenames(FolderPATH)
+    except Exception as e:
+        print(f'处理失败：{e}')
+        parser.print_help()
+        exit(1)
     
