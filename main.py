@@ -41,6 +41,15 @@ def get_pics_list(md_content):
 
 
 def download_pics(url, file):
+    # 判断如果包含xss相关的异常字符则不要进行下载
+    try:
+        xss_words=[">","<",":"]
+        for i in xss_words:
+            if i in url:
+                print("xss words pass.",end="")
+                return False
+    except Exception as _:
+        print(f"error detail :{_}")
     try:
         img_data = requests.get(url,timeout=3,verify=True).content
         
@@ -71,8 +80,8 @@ def download_pics(url, file):
     targer_dir = os.path.join(dirname, f'{filename}.assets')
     
     
-    # 若图片地址在文件夹中，则不再下载
-    if "assets" in url:
+    # 若图片地址在文件夹中，若不是url则不再下载
+    if ".assets" in url or is_valid_url(url):
         return False
     if not os.path.exists(targer_dir):
         os.mkdir(targer_dir)
@@ -82,7 +91,16 @@ def download_pics(url, file):
     
     return f"./{filename}.assets/{pic_filename}"
 
-
+def is_valid_url(url):
+    try:
+        response = requests.head(url)
+        if response.status_code == 200:
+            return True
+        else:
+            return False
+    except requests.RequestException:
+        return False
+    
 # 将文档名称放在文档的第一行
 def update_md_filenames(folder_path):
     print('正在处理文件首行...')
