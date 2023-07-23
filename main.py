@@ -41,15 +41,6 @@ def get_pics_list(md_content):
 
 
 def download_pics(url, file):
-    # 判断如果包含xss相关的异常字符则不要进行下载
-    try:
-        xss_words=[">","<",":"]
-        for i in xss_words:
-            if i in url:
-                print("xss words pass.",end="")
-                return False
-    except Exception as _:
-        print(f"error detail :{_}")
     try:
         img_data = requests.get(url,timeout=3,verify=True).content
         
@@ -150,6 +141,16 @@ def main(FolderPATH):
                 if "http" not in pic:
                     print("⏩")
                     continue
+                # 判断如果包含xss相关的异常字符则不要进行下载
+                try:
+                    xss_words=[">","<",":"]
+                    for i in xss_words:
+                        if i in pic:
+                            print("xsswd⏩",end="")
+                            continue
+                except Exception as _:
+                    print(f"error detail :{_}")
+                    pass
                 new_img_path=download_pics(pic, file)
                 if new_img_path:
                     new_content = md_content.replace(pic, new_img_path)
