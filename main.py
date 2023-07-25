@@ -5,10 +5,8 @@ import uuid
 import fnmatch
 from bs4 import BeautifulSoup
 import argparse
-
-
-
-
+import hashlib
+from urllib.parse import urlparse
 
 def get_files_list(dir):
     """
@@ -23,7 +21,6 @@ def get_files_list(dir):
                 files_list.append(os.path.join(root, file))
     return files_list
 
-
 def get_pics_list(md_content):
     """
     获取一个markdown文档里的所有图片链接
@@ -36,51 +33,38 @@ def get_pics_list(md_content):
     pics_list = []
     for img in soup.find_all('img'):
         pics_list.append(img.get('src'))
-
     return pics_list
 
-
 def download_pics(url, file):
+    """
+    下载图片并保存到本地
+    """
+    # 生成图片的MD5哈希值作为文件名
+    file_name = hashlib.md5(url.encode()).hexdigest() + '.jpg'
+    # 拼接保存路径
+    save_path = os.path.join(os.path.dirname(file), f"{os.path.splitext(os.path.basename(file))[0]}.assets", file_name)
+    print(f"save_path:{save_path}")
+    # 判断文件是否已存在，若存在直接返回文件路径
+    if os.path.exists(save_path):
+        return save_path
     try:
-        img_data = requests.get(url,timeout=3,verify=True).content
-        
+        # 发起请求下载图片
+        img_data = requests.get(url, timeout=3, verify=True).content
     except Exception as e:
-        print("❌，ssl不使用认证尝试",end="")
+        print("❌，ssl不使用认证尝试", end="")
         try:
-            img_data = requests.get(url, proxies=proxies,verify=False).content
-            
+            img_data = requests.get(url, timeout=3, verify=False).content
         except Exception as e:
             if DEBUG:
                 print(f"Failed to download image from {url} to {file}: {e}")
-            pass
-        
-        print("❌，使用代理",end="")
-        try:
-            proxies = {
-                    "http": f"http://{PROXY}",
-                    "https": f"http://{PROXY}",
-                }
-            img_data = requests.get(url, proxies=proxies,verify=False).content
-            
-        except Exception as e:
-            if DEBUG:
-                print(f"Failed to download image from {url} to {file}: {e}")
-            pass
-    filename = os.path.basename(file).replace('.md','')
-    dirname = os.path.dirname(file)
-    targer_dir = os.path.join(dirname, f'{filename}.assets')
-    
-    
-    # 若图片地址在文件夹中，若不是url则不再下载
-    if ".assets" in url or is_valid_url(url):
-        return False
-    if not os.path.exists(targer_dir):
-        os.mkdir(targer_dir)
-    pic_filename = f'{uuid.uuid4().hex}.jpg'
-    with open(os.path.join(targer_dir, pic_filename), 'w+') as f:
-        f.buffer.write(img_data)
-    
-    return f"./{filename}.assets/{pic_filename}"
+            return None
+    # 创建目录
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+    with open(save_path, 'wb') as f:
+        f.write(img_data)
+    # 获取相对路径
+    relative_path = os.path.relpath(save_path, os.path.dirname(file))
+    return relative_path
 
 def is_valid_url(url):
     try:
@@ -91,8 +75,7 @@ def is_valid_url(url):
             return False
     except requests.RequestException:
         return False
-    
-# 将文档名称放在文档的第一行
+
 def update_md_filenames(folder_path):
     print('正在处理文件首行...')
     for root, dirs, files in os.walk(folder_path):
@@ -100,7 +83,7 @@ def update_md_filenames(folder_path):
             if file.endswith(".md"):
                 file_path = os.path.join(root, file)
                 file_name = os.path.splitext(file)[0]
-                with open(file_path, "r+") as f:
+                with open(file_path, "r+", encoding='utf-8') as f:
                     if not f.readline().endswith('file_name\n'):
                         content = f.read()
                         f.seek(0, 0)
@@ -114,68 +97,61 @@ def update_md_filenames(folder_path):
 def main(FolderPATH):
     # 使用参数
     print(f'The file path is {FolderPATH}')
-
     # 切换到文件所在的目录
     os.chdir(FolderPATH)
     print(f'切换到目录：{FolderPATH}')
     print(f'当前目录：{os.getcwd()}')
     files_list = get_files_list(FolderPATH)
-
     for file in files_list:
         # 判断文件名是否为md，若不是则绕过
         if not file.endswith('.md'):
             print(f'跳过：{file}')
             continue
-        
         print(f'正在处理：{file}')
-
         with open(file, encoding='utf-8') as f:
             md_content = f.read()
-
         pics_list = get_pics_list(md_content)
         print(f'发现图片 {len(pics_list)} 张')
-
         for index, pic in enumerate(pics_list):
-            print(f'正在下载第 {index + 1} 张图片...',end="")
+            print(f'正在下载第 {index + 1} 张图片...{pic}', end="")
             try:
                 if "http" not in pic:
-                    print("⏩")
+                    print("nohttp⏩")
                     continue
                 # 判断如果包含xss相关的异常字符则不要进行下载
                 try:
-                    xss_words=[">","<",":"]
+                    xss_words = [">", "<"]
                     for i in xss_words:
                         if i in pic:
-                            print("xsswd⏩",end="")
+                            print("xsswd⏩", end="")
                             continue
                 except Exception as _:
-                    print(f"error detail :{_}")
+                    if DEBUG:
+                        print(f"error detail :{_}")
                     pass
-                new_img_path=download_pics(pic, file)
+                new_img_path = download_pics(pic, file)
                 if new_img_path:
                     new_content = md_content.replace(pic, new_img_path)
-                    with open(file, 'w', encoding='utf-8') as f:
-                        f.write(new_content)
-                    print("✅")
-                else:# 若返回false则跳过
-                    print("⏩")
+                    md_content = new_content 
+                    if DEBUG:
+                        print(f"\nnew_img_path:{new_img_path}")
+                    print(f"✅")
+                else:
+                    print("else⏩")
+                    if DEBUG:
+                        print(f"\nnew_img_path:{new_img_path}")
                     continue
             except Exception as e:
-                if new_img_path == False:
-                    print("⏩")
-                    print(f'图片{pic}已存在，跳过')
-                else:    
-                    print("❌")
-                    if DEBUG:
-                        print(f'下载{pic}失败：{e}')
-                pass
+                if DEBUG:
+                    print(f'下载{pic}失败：{e}')
+                continue
+        with open(file, 'w', encoding='utf-8') as f:
+            f.write(md_content)
+        print(f'处理完成。')
 
-        f.close()
-        print(f'处理完成。')    
 if __name__ == '__main__':
     # 创建 ArgumentParser 对象
     parser = argparse.ArgumentParser(description='This is a project to download pic from markdown.')
-
     # 添加参数
     parser.add_argument('-f', '--folder', help='folder path, default is ./files', default=os.path.abspath(os.path.join('.', 'files')))
     parser.add_argument('-p', '--proxy', help='proxy, default is 127.0.0.1:1087', default='127.0.0.1:1087')
@@ -187,16 +163,10 @@ if __name__ == '__main__':
     DEBUG = args.debug
     try:
         main(FolderPATH)
-            
         # 处理md文档内容首行，确保所有文件的首行为文件名
-        # 判断文件首行是否为文件名
-        # 判断首行是否为文件名
-        # 获取文件名
-        
         update_md_filenames(FolderPATH)
     except Exception as e:
         if DEBUG:
             print(f'处理失败：{e}')
         parser.print_help()
         exit(1)
-    
