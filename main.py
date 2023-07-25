@@ -1,11 +1,10 @@
 import misaka
 import os
 import requests
-import uuid
+import hashlib
 import fnmatch
 from bs4 import BeautifulSoup
 import argparse
-import hashlib
 from urllib.parse import urlparse
 
 def get_files_list(dir):
@@ -43,7 +42,8 @@ def download_pics(url, file):
     file_name = hashlib.md5(url.encode()).hexdigest() + '.jpg'
     # 拼接保存路径
     save_path = os.path.join(os.path.dirname(file), f"{os.path.splitext(os.path.basename(file))[0]}.assets", file_name)
-    print(f"save_path:{save_path}")
+    if DEBUG:
+        print(f"save_path:{save_path}")
     # 判断文件是否已存在，若存在直接返回文件路径
     if os.path.exists(save_path):
         return save_path
@@ -113,17 +113,26 @@ def main(FolderPATH):
         pics_list = get_pics_list(md_content)
         print(f'发现图片 {len(pics_list)} 张')
         for index, pic in enumerate(pics_list):
-            print(f'正在下载第 {index + 1} 张图片...{pic}', end="")
+            if DEBUG:
+                print(f'正在下载第 {index + 1} 张图片...{pic}', end="")
+            else:
+                print(f'正在下载第 {index + 1} 张图片...',end='')
             try:
                 if "http" not in pic:
-                    print("nohttp⏩")
+                    if DEBUG:
+                        print("nohttp⏩")
+                    else:
+                        print("⏩")
                     continue
                 # 判断如果包含xss相关的异常字符则不要进行下载
                 try:
                     xss_words = [">", "<"]
                     for i in xss_words:
                         if i in pic:
-                            print("xsswd⏩", end="")
+                            if DEBUG:
+                                print("xsswd⏩", end="")
+                            else:
+                                print("⏩")
                             continue
                 except Exception as _:
                     if DEBUG:
